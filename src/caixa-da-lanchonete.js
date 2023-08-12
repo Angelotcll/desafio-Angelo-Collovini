@@ -1,156 +1,108 @@
-const produtos = [
-  {
-    codigo: "cafe",
+const produtos = {
+  cafe: {
     descricao: "Café",
     valor: 3.0,
   },
-  {
-    codigo: "chantily",
+  chantily: {
     descricao: "Chantily (extra do Café)",
     valor: 1.5,
   },
-  {
-    codigo: "suco",
+  suco: {
     descricao: "Suco Natural",
     valor: 6.2,
   },
-  {
-    codigo: "sanduiche",
+  sanduiche: {
     descricao: "Sanduíche",
     valor: 6.5,
   },
-  {
-    codigo: "queijo",
+  queijo: {
     descricao: "Queijo (extra do Sanduíche)",
     valor: 2.0,
   },
-  {
-    codigo: "salgado",
+  salgado: {
     descricao: "Salgado",
     valor: 7.25,
   },
-  {
-    codigo: "combo1",
+  combo1: {
     descricao: "1 Suco e 1 Sanduíche",
     valor: 9.5,
   },
-  {
-    codigo: "combo2",
+  combo2: {
     descricao: "1 Café e 1 Sanduíche",
     valor: 7.5,
   },
-];
+};
 
-const formasDePagamento = [
-  {
-    forma: "dinheiro",
-    multiplicador: 0.95,
-  },
-  {
-    forma: "debito",
-    multiplicador: 1,
-  },
-  {
-    forma: "credito",
-    multiplicador: 1.03,
-  },
-];
+const formasDePagamento = {
+  dinheiro: 0.95,
+  debito: 1,
+  credito: 1.03,
+};
 
 class CaixaDaLanchonete {
   calcularValorDaCompra(metodoDePagamento, itens) {
-    const pedido = montarPedido(itens);
-
-    const resultado = validarPedido(metodoDePagamento, pedido);
-
-    if (resultado === "Pedido válido!") {
-      const calculaValorDoPedido = valorDoPedido(pedido, metodoDePagamento);
-      return calculaValorDoPedido
+    if (!formasDePagamento.hasOwnProperty(metodoDePagamento)) {
+      return "Forma de pagamento inválida!";
     }
 
-    return resultado;
+    let itensPedido;
+
+    try {
+      itensPedido = montandoPedido(itens);
+    } catch (error) {
+      return error.message;
+    }
+
+    const totalPedido =
+      itensPedido.reduce((acc, item) => acc + item.subtotal, 0) *
+      formasDePagamento[metodoDePagamento];
+
+    return `R$ ${totalPedido.toFixed(2).replace(".", ",")}`;
   }
 }
 
-function montarPedido(itens) {
-  const pedido = itens.map((produtos) => {
-    const [nome, quantidade] = produtos.split(",");
-    return { nome: nome, quantidade: parseInt(quantidade) };
+function montandoPedido(itens) {
+  if (itens.length === 0) {
+    throw new Error("Não há itens no carrinho de compra!");
+  }
+
+  let itensPedido = itens.map((item) => {
+    const [nome, quantidade] = item.split(",");
+    const qtd = parseInt(quantidade);
+
+    if (qtd === 0) {
+      throw new Error("Quantidade inválida!");
+    }
+
+    if (!produtos.hasOwnProperty(nome)) {
+      throw new Error("Item inválido!");
+    }
+
+    return { nome, qtd, subtotal: produtos[nome].valor * qtd };
   });
-  return pedido;
-}
 
-function validarPedido(metodoDePagamento, pedido) {
-  if (!validarFormaDePagamento(metodoDePagamento)) {
-    return "Forma de pagamento inválida!";
+  if (!validarItemExtra(itensPedido)) {
+    throw new Error("Item extra não pode ser pedido sem o principal");
   }
 
-  if (validarEntradaDeItens(pedido)) {
-    return "Não há itens no carrinho de compra!";
-  }
-
-  if (validarPedidosComItens(pedido)) {
-    return "Quantidade inválida!";
-  }
-
-  if (validarCodigosValidos(pedido)) {
-    return "Item inválido!";
-  }
-
-  if (validarItemExtra(pedido)) {
-    return "Item extra não pode ser pedido sem o principal";
-  }
-
-  return "Pedido válido!";
-}
-
-function validarFormaDePagamento(metodoDePagament) {
-  return formasDePagamento.find((item) => item.forma === metodoDePagament);
-}
-
-function validarEntradaDeItens(itens) {
-  return itens.length === 0;
-}
-
-function validarPedidosComItens(pedido) {
-  return pedido.find((item) => item.quantidade === 0);
-}
-
-function validarCodigosValidos(pedido) {
-  return pedido.some(
-    (item) => !produtos.map((item) => item.codigo).includes(item.nome)
-  );
+  return itensPedido;
 }
 
 function validarItemExtra(pedido) {
-  if (pedido.find((item) => item.nome === "chantily")) {
-    return !pedido.some((item) => item.nome === "cafe");
-  } else if (pedido.find((item) => item.nome === "queijo")) {
-    return !pedido.some((item) => item.nome === "sanduiche");
+  const nomeItensPedidos = pedido.map((item) => item.nome);
+
+  if (nomeItensPedidos.includes("chantily")) {
+    if (!nomeItensPedidos.includes("cafe")) {
+      return false;
+    }
+  }
+  if (nomeItensPedidos.includes("queijo")) {
+    if (!nomeItensPedidos.includes("sanduiche")) {
+      return false;
+    }
   }
 
-  return false;
-}
-
-function valorDoPedido(pedid, metodoDePagament) {
-  const valorTotalPorItem = pedid.map((item) => {
-    const produtoEncontrado = produtos.find(
-      (produto) => produto.codigo === item.nome
-    );
-    return produtoEncontrado.valor * item.quantidade;
-  });
-
-  const totalPedido =
-    valorTotalPorItem.reduce((acc, valor) => acc + valor, 0) *
-    multiplicadorPagamento(metodoDePagament);
-  const saida = `R$ ${totalPedido.toFixed(2).replace(".", ",")}`;
-  return saida;
-}
-
-function multiplicadorPagamento(metodoDePagament) {
-  const multiplicador = formasDePagamento.find(
-    (item) => item.forma === metodoDePagament
-  );
-  return multiplicador.multiplicador;
+  return true;
 }
 
 export { CaixaDaLanchonete };
