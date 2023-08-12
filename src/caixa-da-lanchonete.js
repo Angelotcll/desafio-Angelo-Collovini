@@ -56,25 +56,24 @@ const formasDePagamento = [
   },
 ];
 
-let itens = ['pizza, 1'];
-let metodoDePagamento = "dinheiro";
-
 class CaixaDaLanchonete {
   calcularValorDaCompra(metodoDePagamento, itens) {
-   const pedido = separandoItens(itens);
+    const pedido = separandoItens(itens);
     console.log(pedido);
 
-    if (!formasDePagamento.find((item) => item.forma === metodoDePagamento)) {
+    if (!validarFormaDePagamento(metodoDePagamento)) {
       return "Forma de pagamento inválida!";
-    } else if (itens.length === 0) {
+    } else if (validarEntradaDeItens(itens)) {
       return "Não há itens no carrinho de compra!";
-    }else if(pedido.find((item) => item.quantidade === 0)){
-        return "Quantidade inválida!"
-    }else if(pedido.some((item) => !produtos.map((item) => item.codigo).includes(item.nome))){
-        return "Item inválido!"
+    } else if (validarPedidosComItens(pedido)) {
+      return "Quantidade inválida!";
+    } else if (validarCodigosValidos(pedido)) {
+      return "Item inválido!";
+    } else if (validarItemExtra(pedido)) {
+      return "Item extra não pode ser pedido sem o principal";
+    } else {
+      return valorDoPedido(pedido, metodoDePagamento);
     }
-
-    return "ok"
   }
 }
 
@@ -86,8 +85,52 @@ function separandoItens(itens) {
   return pedido;
 }
 
-console.log(
-  new CaixaDaLanchonete().calcularValorDaCompra(metodoDePagamento, itens)
-);
+function validarFormaDePagamento(metodoDePagament) {
+  return formasDePagamento.find((item) => item.forma === metodoDePagament);
+}
+
+function validarEntradaDeItens(itens) {
+  return itens.length === 0;
+}
+
+function validarPedidosComItens(pedido) {
+  return pedido.find((item) => item.quantidade === 0);
+}
+
+function validarCodigosValidos(pedido) {
+  return pedido.some(
+    (item) => !produtos.map((item) => item.codigo).includes(item.nome)
+  );
+}
+
+function validarItemExtra(pedido) {
+  if (pedido.find((item) => item.nome === "chantily")) {
+    return !pedido.some((item) => item.nome === "cafe");
+  } else if (pedido.find((item) => item.nome === "queijo")) {
+    return !pedido.some((item) => item.nome === "sanduiche");
+  }
+
+  return false;
+}
+
+function valorDoPedido(pedid, metodoDePagament) {
+  const valorTotalPorItem = pedid.map((item) => {
+    const produtoEncontrado = produtos.find(
+      (produto) => produto.codigo === item.nome
+    );
+    return produtoEncontrado.valor * item.quantidade;
+  });
+
+  const totalPedido = valorTotalPorItem.reduce((acc, valor) => acc + valor, 0) *multiplicadorPagamento(metodoDePagament);
+  const saida = `R$ ${totalPedido.toFixed(2).replace(".", ",")}`;
+  return saida;
+}
+
+function multiplicadorPagamento(metodoDePagament) {
+    const multiplicador = formasDePagamento.find(
+        (item) => item.forma === metodoDePagament
+    );
+    return multiplicador.multiplicador;
+}
 
 export { CaixaDaLanchonete };
