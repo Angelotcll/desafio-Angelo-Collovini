@@ -58,31 +58,49 @@ const formasDePagamento = [
 
 class CaixaDaLanchonete {
   calcularValorDaCompra(metodoDePagamento, itens) {
-    const pedido = separandoItens(itens);
-    console.log(pedido);
+    const pedido = montarPedido(itens);
 
-    if (!validarFormaDePagamento(metodoDePagamento)) {
-      return "Forma de pagamento inválida!";
-    } else if (validarEntradaDeItens(itens)) {
-      return "Não há itens no carrinho de compra!";
-    } else if (validarPedidosComItens(pedido)) {
-      return "Quantidade inválida!";
-    } else if (validarCodigosValidos(pedido)) {
-      return "Item inválido!";
-    } else if (validarItemExtra(pedido)) {
-      return "Item extra não pode ser pedido sem o principal";
-    } else {
-      return valorDoPedido(pedido, metodoDePagamento);
+    const resultado = validarPedido(metodoDePagamento, pedido);
+
+    if (resultado === "Pedido válido!") {
+      const calculaValorDoPedido = valorDoPedido(pedido, metodoDePagamento);
+      return calculaValorDoPedido
     }
+
+    return resultado;
   }
 }
 
-function separandoItens(itens) {
+function montarPedido(itens) {
   const pedido = itens.map((produtos) => {
     const [nome, quantidade] = produtos.split(",");
     return { nome: nome, quantidade: parseInt(quantidade) };
   });
   return pedido;
+}
+
+function validarPedido(metodoDePagamento, pedido) {
+  if (!validarFormaDePagamento(metodoDePagamento)) {
+    return "Forma de pagamento inválida!";
+  }
+
+  if (validarEntradaDeItens(pedido)) {
+    return "Não há itens no carrinho de compra!";
+  }
+
+  if (validarPedidosComItens(pedido)) {
+    return "Quantidade inválida!";
+  }
+
+  if (validarCodigosValidos(pedido)) {
+    return "Item inválido!";
+  }
+
+  if (validarItemExtra(pedido)) {
+    return "Item extra não pode ser pedido sem o principal";
+  }
+
+  return "Pedido válido!";
 }
 
 function validarFormaDePagamento(metodoDePagament) {
@@ -121,16 +139,18 @@ function valorDoPedido(pedid, metodoDePagament) {
     return produtoEncontrado.valor * item.quantidade;
   });
 
-  const totalPedido = valorTotalPorItem.reduce((acc, valor) => acc + valor, 0) *multiplicadorPagamento(metodoDePagament);
+  const totalPedido =
+    valorTotalPorItem.reduce((acc, valor) => acc + valor, 0) *
+    multiplicadorPagamento(metodoDePagament);
   const saida = `R$ ${totalPedido.toFixed(2).replace(".", ",")}`;
   return saida;
 }
 
 function multiplicadorPagamento(metodoDePagament) {
-    const multiplicador = formasDePagamento.find(
-        (item) => item.forma === metodoDePagament
-    );
-    return multiplicador.multiplicador;
+  const multiplicador = formasDePagamento.find(
+    (item) => item.forma === metodoDePagament
+  );
+  return multiplicador.multiplicador;
 }
 
 export { CaixaDaLanchonete };
